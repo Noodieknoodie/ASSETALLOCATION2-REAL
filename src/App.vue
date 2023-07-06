@@ -1,10 +1,37 @@
 <template>
-  <nav>
-    <router-link to="/">Home</router-link> |
-    <router-link to="/about">About</router-link>
-  </nav>
-  <router-view/>
+  <div id="app">
+    <FilterSidebar @apply-filters="updateFilters" />
+    <ClientTable :filters="filters" />
+  </div>
 </template>
+
+<script>
+import ClientTable from "@/components/ClientTable.vue";
+import FilterSidebar from "@/components/FilterSidebar.vue";
+
+export default {
+  components: {
+    ClientTable,
+    FilterSidebar,
+  },
+
+  data() {
+    return {
+      filters: {
+        advisors: [],
+        unspecified: true,
+        valueRange: [0, 300000000],
+      },
+    };
+  },
+
+  methods: {
+    updateFilters(newFilters) {
+      this.filters = newFilters;
+    },
+  },
+};
+</script>
 
 <style>
 #app {
@@ -13,18 +40,6 @@
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-}
-
-nav {
-  padding: 30px;
-}
-
-nav a {
-  font-weight: bold;
-  color: #2c3e50;
-}
-
-nav a.router-link-exact-active {
-  color: #42b983;
+  margin-top: 60px;
 }
 </style>

@@ -1,18 +1,42 @@
 <template>
   <div class="home">
-    <img alt="Vue logo" src="../assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <FilterSidebar @apply-filters="handleApplyFilters" />
+    <ClientTable :filters="filters" />
   </div>
 </template>
 
 <script>
-// @ is an alias to /src
-import HelloWorld from '@/components/HelloWorld.vue'
+import ClientTable from "@/components/ClientTable.vue";
+import FilterSidebar from "@/components/FilterSidebar.vue";
+import { ref } from "vue";
 
 export default {
-  name: 'HomeView',
+  name: "HomeView",
   components: {
-    HelloWorld
-  }
-}
+    ClientTable,
+    FilterSidebar,
+  },
+  setup() {
+    const filters = ref(null);
+
+    const handleApplyFilters = (newFilters) => {
+      filters.value = newFilters;
+    };
+
+    return {
+      filters,
+      handleApplyFilters,
+    };
+  },
+};
 </script>
+
+<style scoped>
+  .home {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+  }
+</style>
