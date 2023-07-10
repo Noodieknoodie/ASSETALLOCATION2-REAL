@@ -1,4 +1,4 @@
-```
+
 import { parse } from "papaparse";
 
 let qualifiedKeywords = ['401(k)', '403(b)', 'IRA', 'IRA Intelligent', 'IRA Rollover', 'IRA Rollover 2', 'Roth Conversion', 'Roth Conversion IRA', 'Roth IRA', 'Roth IRA Intelligent', 'SEP IRA', 'Simple IRA', 'Inherited IRA', 'Inherited Roth IRA'];
@@ -30,6 +30,17 @@ export function parseCSVData(csvData) {
     skipEmptyLines: "greedy",
   });
 
+  const accountTypeCounts = new Map([
+    ['Qualified', 0],
+    ['Non-Qualified', 0],
+    ['Tax-Free', 0]
+  ]);
+  const accountTypeSums = new Map([
+    ['Qualified', 0],
+    ['Non-Qualified', 0],
+    ['Tax-Free', 0]
+  ]);
+
   const summaryData = parsedData.data.reduce((acc, row) => {
     const id = row["Primary Household ID"];
     const accountId = row["Account Number"];
@@ -52,9 +63,8 @@ export function parseCSVData(csvData) {
       id,
       householdName,
       primaryAdvisor: row["Primary Advisor"],
-      accounts: new Map(),  // changed from Set to Map
+      accounts: new Map(),
       totalAccountValue: 0,
-      accountTypes: { 'Qualified': 0, 'Non-Qualified': 0, 'Tax-Free': 0 },
     };
 
     if (!household.accounts.has(accountId)) {
@@ -62,14 +72,24 @@ export function parseCSVData(csvData) {
         id: accountId,
         name: accountName,
         value: accountValue,
+        type: accountType
       });
-      household.accountTypes[accountType] += 1;
+      accountTypeCounts.set(accountType, accountTypeCounts.get(accountType) + 1);
+      accountTypeSums.set(accountType, accountTypeSums.get(accountType) + accountValue);
       household.totalAccountValue += accountValue;
     }
 
     acc[id] = household;
     return acc;
   }, {});
+
+    // Calculate account type counts and sums after processing all households
+    Object.values(summaryData).forEach(household => {
+      Array.from(household.accounts.values()).forEach(account => {
+        accountTypeCounts.set(account.type, accountTypeCounts.get(account.type) + 1);
+        accountTypeSums.set(account.type, accountTypeSums.get(account.type) + account.value);
+      });
+    });
 
   const formattedData = Object.values(summaryData).map((household) => {
     const topAccounts = Array.from(household.accounts.values())
@@ -82,7 +102,16 @@ export function parseCSVData(csvData) {
       advisor: household.primaryAdvisor,
       numberOfAccounts: household.accounts.size,
       totalAccountValue: household.totalAccountValue.toFixed(2),
-      accountTypes: household.accountTypes,
+      accountTypes: {
+        'Qualified': accountTypeCounts.get('Qualified'),
+        'Non-Qualified': accountTypeCounts.get('Non-Qualified'),
+        'Tax-Free': accountTypeCounts.get('Tax-Free')
+      },
+      accountTypeSums: {
+        'Qualified': accountTypeSums.get('Qualified').toFixed(2),
+        'Non-Qualified': accountTypeSums.get('Non-Qualified').toFixed(2),
+        'Tax-Free': accountTypeSums.get('Tax-Free').toFixed(2)
+      },
       currentAllocation: "TBD",
       targetAllocation: "TBD",
       topAccounts,
@@ -91,4 +120,3 @@ export function parseCSVData(csvData) {
 
   return formattedData;
 }
-```

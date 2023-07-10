@@ -89,15 +89,19 @@ export default {
     const accountValues = computed(() =>
       filteredData.value.reduce(
         (values, household) => {
-          values.Qualified +=
-            household.accountTypes.Qualified *
-            parseFloat(household.totalAccountValue);
-          values.NonQualified +=
-            household.accountTypes.NonQualified *
-            parseFloat(household.totalAccountValue);
-          values.TaxFree +=
-            household.accountTypes.TaxFree *
-            parseFloat(household.totalAccountValue);
+          values.Qualified += isNaN(
+            parseFloat(household.accountTypeSums.Qualified)
+          )
+            ? 0
+            : parseFloat(household.accountTypeSums.Qualified);
+          values.NonQualified += isNaN(
+            parseFloat(household.accountTypeSums.NonQualified)
+          )
+            ? 0
+            : parseFloat(household.accountTypeSums.NonQualified);
+          values.TaxFree += isNaN(parseFloat(household.accountTypeSums.TaxFree))
+            ? 0
+            : parseFloat(household.accountTypeSums.TaxFree);
           return values;
         },
         { Qualified: 0, NonQualified: 0, TaxFree: 0 }

@@ -1,0 +1,679 @@
+K:\KODING\AAMAPP3\asset-allocation-management-system2\src\utils\csvParser.js
+
+
+import { parse } from "papaparse";
+
+let qualifiedKeywords = ['401(k)', '403(b)', 'IRA', 'IRA Intelligent', 'IRA Rollover', 'IRA Rollover 2', 'Roth Conversion', 'Roth Conversion IRA', 'Roth IRA', 'Roth IRA Intelligent', 'SEP IRA', 'Simple IRA', 'Inherited IRA', 'Inherited Roth IRA'];
+let taxFreeKeywords = ['529', 'Charitable', 'Education Savings', 'Utah 529', 'UTMA'];
+let nonQualifiedKeywords = ['Annuity', 'By-Pass Trust', 'Credit Shelter Trust', 'Family Trust', 'Grantor Trust', 'GRAT', 'GST', 'GST (Margin)', 'Irrevocable Trust', 'Living Trust', 'Living Trust (Bonds)', 'Living Trust (Dividend)', 'Living Trust (Equity)', 'Living Trust (Margin)', 'Living Trust (Yield)', 'Marital Trust', 'Pen Trust', 'Rev Trust 1', 'Rev Trust 2', 'Revocable Trust', 'Revocable Trust (Equity)', 'Revocable Trust (Yield)', 'Special Needs Trust', 'Supplemental Needs Trust', 'Survivors Trust', 'Testamentary Trust', 'Trust', 'Individual', 'Comm Prop WROS', 'Community Property', 'Community Property (Margin)', 'Community Property 2', 'Dsg Bene JT (Margin)', 'JT TEN', 'JT TEN - LINK', 'JT TEN - Travel', 'JT TEN (Fool Acct)', 'JT TEN (Income)', 'JT TEN (Investment)', 'JT TEN (Margin)', 'JT TEN (Tax)', 'JT TEN (Tech)', 'JT TEN (Trading)', 'JT TEN | Pledged', 'JT Ten 2', 'JT Ten Comp', 'JTWROS', 'JTWROS 4', 'JTWROS COMP', 'Ten Com', 'Ten Com (Margin)', 'Corporate', 'LLC', 'Partnership', 'Partnership (Margin)', 'Profit Sharing Plan', 'CRUT', 'Schwab Charitable', 'Annuity', 'Estate', 'OUTSIDE BILLING', 'Separate Property'];
+
+function getAccountType(accountName) {
+  const lowerCaseAccountName = accountName.toLowerCase();
+
+  if (qualifiedKeywords.some(keyword => lowerCaseAccountName.includes(keyword.toLowerCase()))) {
+    return 'Qualified';
+  }
+
+  if (taxFreeKeywords.some(keyword => lowerCaseAccountName.includes(keyword.toLowerCase()))) {
+    return 'Tax-Free';
+  }
+
+  if (nonQualifiedKeywords.some(keyword => lowerCaseAccountName.includes(keyword.toLowerCase()))) {
+    return 'Non-Qualified';
+  }
+
+  return 'Unknown'; 
+}
+
+
+export function parseCSVData(csvData) {
+  const parsedData = parse(csvData.trim(), {
+    header: true,
+    skipEmptyLines: "greedy",
+  });
+
+  const accountTypeCounts = new Map([
+    ['Qualified', 0],
+    ['Non-Qualified', 0],
+    ['Tax-Free', 0]
+  ]);
+  
+  const accountTypeSums = new Map([
+    ['Qualified', 0],
+    ['Non-Qualified', 0],
+    ['Tax-Free', 0]
+  ]);
+  
+  parsedData.data.forEach((row) => {
+    const accountName = row["Account Name"];
+    const accountType = getAccountType(accountName);
+    const accountValue = parseFloat(row["Account Current Value"]);
+  
+    // Update the counts and sums for each account type
+    accountTypeCounts.set(accountType, accountTypeCounts.get(accountType) + 1);
+    accountTypeSums.set(accountType, accountTypeSums.get(accountType) + accountValue);
+  });
+  
+  const totalAccounts = parsedData.data.length;
+  const totalValue = accountTypeSums.get('Qualified') + accountTypeSums.get('Non-Qualified') + accountTypeSums.get('Tax-Free');
+  
+  const qualifiedCount = accountTypeCounts.get('Qualified');
+  const nonQualifiedCount = accountTypeCounts.get('Non-Qualified');
+  const taxFreeCount = accountTypeCounts.get('Tax-Free');
+  
+  const qualifiedValue = accountTypeSums.get('Qualified');
+  const nonQualifiedValue = accountTypeSums.get('Non-Qualified');
+  const taxFreeValue = accountTypeSums.get('Tax-Free');
+  
+  const householdsCount = parsedData.meta.count;
+  
+  const summaryData = {
+    totalAccounts,
+    totalValue,
+    qualifiedCount,
+    nonQualifiedCount,
+    taxFreeCount,
+    qualifiedValue,
+    nonQualifiedValue,
+    taxFreeValue,
+    householdsCount
+  };
+  
+  return summaryData;
+}
+
+export default parseCSVData;
+
+K:\KODING\AAMAPP3\asset-allocation-management-system2\src\App.vue
+
+<template>
+  <div id="app">
+    <FilterSidebar @apply-filters="updateFilters" />
+    <HomeView :filters="filters"/>
+  </div>
+</template>
+
+
+
+<script>
+import HomeView from "@/views/HomeView.vue";
+import FilterSidebar from "@/components/FilterSidebar.vue";
+
+export default {
+  components: {
+    FilterSidebar,
+    HomeView,
+  },
+
+  data() {
+    return {
+      filters: {
+        advisors: [],
+        unspecified: true,
+        valueRange: [0, 300000000],
+      },
+    };
+  },
+
+  methods: {
+    updateFilters(newFilters) {
+      this.filters = newFilters;
+    },
+  },
+};
+</script>
+
+<style>
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  color: #2c3e50;
+  margin-top: 60px;
+}
+</style>
+
+K:\KODING\AAMAPP3\asset-allocation-management-system2\src\views\HomeView.vue
+<template>
+  <div class="home">
+    <div class="content">
+      <SummaryBox
+        :totalHouseholds="totalHouseholds"
+        :totalAccounts="totalAccounts"
+        :accountTypes="accountTypes"
+        :totalValue="totalValue"
+        :accountValues="accountValues"
+        :topHouseholds="topHouseholds"
+        :topAccounts="topAccounts"
+      />
+      <!-- Pass the key prop to force the component to re-render when filters change -->
+      <ClientTable
+        :filters="filters"
+        :key="filterKey"
+        @filtered-data="handleFilteredData"
+      />
+    </div>
+  </div>
+</template>
+
+<script>
+import { ref, computed, watch } from "vue";
+import ClientTable from "@/components/ClientTable.vue";
+import SummaryBox from "@/components/SummaryBox.vue";
+
+export default {
+  name: "HomeView",
+  components: {
+    ClientTable,
+    SummaryBox,
+  },
+
+  props: {
+    filters: {
+      //change initialFilters to filters
+      type: Object,
+      default: () => ({}),
+    },
+  },
+
+  setup(props) {
+    const filteredData = ref([]);
+    // Add a ref to hold the filter key
+    const filterKey = ref(0);
+
+    // Watch the filters prop for changes
+    watch(
+      () => props.initialFilters,
+      () => {
+        // Update filterKey to force ClientTable to re-render
+        filterKey.value++;
+      },
+      { deep: true }
+    );
+
+    const handleFilteredData = (data) => {
+      filteredData.value = data;
+    };
+
+    const totalHouseholds = computed(() => filteredData.value.length);
+    const totalAccounts = computed(() =>
+      filteredData.value.reduce(
+        (sum, household) => sum + household.numberOfAccounts,
+        0
+      )
+    );
+
+    const accountTypes = computed(() =>
+      filteredData.value.reduce(
+        (types, household) => {
+          types.Qualified += household.accountTypes.Qualified;
+          types.NonQualified += household.accountTypes.NonQualified;
+          types.TaxFree += household.accountTypes.TaxFree;
+          return types;
+        },
+        { Qualified: 0, NonQualified: 0, TaxFree: 0 }
+      )
+    );
+
+    const totalValue = computed(() =>
+      filteredData.value.reduce(
+        (sum, household) => sum + parseFloat(household.totalAccountValue),
+        0
+      )
+    );
+
+    const accountValues = computed(() =>
+      filteredData.value.reduce(
+        (values, household) => {
+          values.Qualified +=
+            household.accountTypes.Qualified *
+            parseFloat(household.totalAccountValue);
+          values.NonQualified +=
+            household.accountTypes.NonQualified *
+            parseFloat(household.totalAccountValue);
+          values.TaxFree +=
+            household.accountTypes.TaxFree *
+            parseFloat(household.totalAccountValue);
+          return values;
+        },
+        { Qualified: 0, NonQualified: 0, TaxFree: 0 }
+      )
+    );
+
+    const topHouseholds = computed(() => {
+      const sortedData = [...filteredData.value].sort(
+        (a, b) =>
+          parseFloat(b.totalAccountValue) - parseFloat(a.totalAccountValue)
+      );
+      return sortedData.slice(0, 5).map((household) => ({
+        name: household.household,
+        value: parseFloat(household.totalAccountValue),
+      }));
+    });
+
+    const topAccounts = computed(() => {
+      const accounts = filteredData.value.flatMap((household) =>
+        household.topAccounts.map((account) => ({
+          ...account,
+          householdName: household.household,
+        }))
+      );
+      const sortedAccounts = accounts.sort((a, b) => b.value - a.value);
+      return sortedAccounts.slice(0, 5);
+    });
+
+    return {
+      filterKey, // Return the filterKey ref from setup
+      handleFilteredData,
+      totalHouseholds,
+      totalAccounts,
+      accountTypes,
+      totalValue,
+      accountValues,
+      topHouseholds,
+      topAccounts,
+    };
+  },
+};
+</script>
+
+<style scoped>
+.home {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+.content {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+</style>
+
+
+K:\KODING\AAMAPP3\asset-allocation-management-system2\src\components\FilterSidebar.vue
+
+<template>
+    <div class="filter-sidebar">
+      <h3>Filter by Advisor</h3>
+      <div>
+        <input type="checkbox" id="selectAll" v-model="selectAll" @change="toggleSelectAll" />
+        <label for="selectAll">Select All</label>
+      </div>
+      <div v-for="(advisor, index) in advisors" :key="index">
+        <input
+          type="checkbox"
+          :id="advisor"
+          v-model="pendingFilters.advisors"
+          :value="advisor"
+          :disabled="selectAll"
+        />
+        <label :for="advisor">{{ advisor }}</label>
+      </div>
+      <h3>Filter by Total Account Value</h3>
+      <div class="range-slider">
+        <input type="range" min="0" max="30000000" step="100000" v-model="pendingFilters.valueRange[0]" />
+        <input type="range" min="0" max="30000000" step="100000" v-model="pendingFilters.valueRange[1]" />
+      </div>
+      <div>
+        <input type="number" v-model="pendingFilters.valueRange[0]" min="0" max="300000000" />
+        <input type="number" v-model="pendingFilters.valueRange[1]" min="0" max="300000000" />
+      </div>
+      <button @click="applyFilters">Apply Filters</button>
+    </div>
+  </template>
+  
+  <style>
+  .range-slider {
+    display: flex;
+  }
+  </style>
+  
+  <script>
+  import { ref, reactive, onMounted } from "vue";
+  import tableData from "@/utils/csvData";
+  
+  export default {
+    emits: ['apply-filters'],
+  
+    setup(_, { emit }) {
+      const advisors = ref([]);
+      const selectAll = ref(true);
+      const filters = reactive({
+        advisors: [],
+        valueRange: [0, 300000000],
+      });
+      const pendingFilters = reactive({
+        advisors: [],
+        valueRange: [0, 300000000],
+      });
+  
+      // Extract unique advisors from the data
+      onMounted(() => {
+        const uniqueAdvisors = [...new Set(tableData.map((row) => row.advisor))];
+        advisors.value = uniqueAdvisors;
+        // Initialize filters and pendingFilters
+        filters.advisors = uniqueAdvisors;
+        pendingFilters.advisors = uniqueAdvisors;
+      });
+  
+      const toggleSelectAll = () => {
+        if (selectAll.value) {
+          pendingFilters.advisors = advisors.value;
+        } else {
+          pendingFilters.advisors = [];
+        }
+      };
+  
+      const applyFilters = () => {
+        filters.advisors = [...pendingFilters.advisors];
+        filters.valueRange = [...pendingFilters.valueRange];
+  
+        emit('apply-filters', filters);
+      };
+  
+      return {
+        advisors,
+        selectAll,
+        filters,
+        pendingFilters,
+        toggleSelectAll,
+        applyFilters,
+      };
+    },
+  };
+  </script>
+
+<style scoped>
+.filter-sidebar {
+  width: 25%;
+  padding: 20px;
+  border-right: 1px solid #ddd;
+}
+
+.filter-title {
+  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.filter-section {
+  margin-bottom: 20px;
+}
+
+.filter-section-title {
+  margin-bottom: 5px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.advisor-filter {
+  display: flex;
+  flex-direction: column;
+}
+
+.advisor-filter-item {
+  margin-bottom: 5px;
+  cursor: pointer;
+}
+
+.advisor-filter-item.active {
+  color: blue;
+}
+
+.value-filter {
+  display: flex;
+  align-items: center;
+}
+
+.value-filter-input {
+  width: 50px;
+  margin: 0 10px;
+}
+</style>
+
+
+K:\KODING\AAMAPP3\asset-allocation-management-system2\src\components\ClientTable.vue
+
+<template>
+  <div class="table-container">
+    <div class="search-container">
+      <label for="search" class="search-label">Search:</label>
+      <input
+        type="text"
+        id="search"
+        v-model="searchText"
+        class="search-input"
+      />
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Household</th>
+          <th>Advisor</th>
+          <th>Number of Accounts</th>
+          <th>Total Account Value</th>
+          <th>Current Allocation</th>
+          <th>Target Allocation</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          v-for="(row, rowIndex) in filteredData"
+          :key="rowIndex"
+          :class="{ 'highlighted-row': rowIndex === highlightedRowIndex }"
+          @mouseover="highlightedRowIndex = rowIndex"
+          @mouseout="highlightedRowIndex = -1"
+          @click="onRowClick(rowIndex)"
+        >
+          <td>{{ row.id }}</td>
+          <td>{{ row.household }}</td>
+          <td>{{ row.advisor }}</td>
+          <td>{{ row.numberOfAccounts }}</td>
+          <td>{{ formatCurrency(row.totalAccountValue) }}</td>
+          <td>{{ row.currentAllocation }}</td>
+          <td>{{ row.targetAllocation }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
+<script>
+import { ref, computed, watch } from "vue";
+import tableData from "@/utils/csvData";
+
+export default {
+  props: {
+    filters: Object,
+  },
+
+  setup(props, { emit }) {
+    const searchText = ref("");
+    const highlightedRowIndex = ref(-1);
+
+    const filteredData = computed(() => {
+      if (!props.filters) return tableData;
+
+      return tableData.filter((row) => {
+        // Include only rows where advisor is selected in the filters or unspecified if selected
+        if (
+          props.filters.advisors.length > 0 &&
+          !props.filters.advisors.includes(row.advisor) &&
+          (!props.filters.unspecified || row.advisor)
+        ) {
+          return false;
+        }
+
+        // Include only rows where Total Account Value is within selected range
+        if (
+          parseFloat(row.totalAccountValue) < props.filters.valueRange[0] ||
+          parseFloat(row.totalAccountValue) > props.filters.valueRange[1]
+        ) {
+          return false;
+        }
+
+        // Include only rows that contain the search text
+        if (
+          searchText.value !== "" &&
+          !row.household.toLowerCase().includes(searchText.value.toLowerCase())
+        ) {
+          return false;
+        }
+
+        return true;
+      });
+    });
+
+    // Add a watcher to emit the filtered-data event
+    watch(filteredData, (newData) => {
+      // Emit the filtered-data event with the new data
+      emit("filtered-data", newData);
+    });
+
+    const onRowClick = (index) => {
+      console.log(`Row ${index} clicked`);
+      // Add your logic here
+    };
+
+    return {
+      searchText,
+      filteredData,
+      highlightedRowIndex,
+      onRowClick, // Return the function
+    };
+  },
+
+  methods: {
+    formatCurrency(value) {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(value);
+    },
+  },
+};
+</script>
+
+<style scoped>
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.search-container {
+  margin-bottom: 20px;
+}
+
+.search-label {
+  margin-right: 10px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border: 1px solid black;
+  padding: 8px;
+  text-align: left;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+
+.highlighted-row {
+  background-color: #e0e0e0;
+}
+</style>
+
+K:\KODING\AAMAPP3\asset-allocation-management-system2\src\components\SummaryBox.vue
+
+<template>
+  <div class="summary-box">
+    <h3>Filters Activated</h3>
+    <ul>
+      <li v-for="(filter, index) in filters" :key="index">
+        {{ filter.name }}: {{ filter.value }}
+      </li>
+    </ul>
+    <h3>Households and Accounts Summary</h3>
+    <p>Total Households: {{ totalHouseholds }}</p>
+    <p>Total Accounts: {{ totalAccounts }}</p>
+    <p>
+      Qualified: {{ accountTypes.Qualified }} | Non-Qualified: {{
+        accountTypes.NonQualified
+      }} | Tax-Free: {{ accountTypes.TaxFree }}
+    </p>
+    <h3>Accounts Value Summary</h3>
+    <p>Total Value: {{ formatCurrency(totalValue) }}</p>
+    <p>
+      Qualified: {{ formatCurrency(accountValues.Qualified) }} | Non-Qualified: {{
+        formatCurrency(accountValues.NonQualified)
+      }} | Tax-Free: {{ formatCurrency(accountValues.TaxFree) }}
+    </p>
+    <h3>Top 5 Households by AUM Value</h3>
+    <ul>
+      <li v-for="(household, index) in topHouseholds" :key="index">
+        {{ household.name }} - {{ formatCurrency(household.value) }}
+      </li>
+    </ul>
+    <h3>Top 5 Accounts by Value</h3>
+    <ul>
+      <li v-for="(account, index) in topAccounts" :key="index">
+        {{ account.number }} - {{ formatCurrency(account.value) }} - {{
+          account.householdName
+        }}
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script>
+export default {
+  props: {
+    filters: Array,
+    totalHouseholds: Number,
+    totalAccounts: Number,
+    accountTypes: Object,
+    totalValue: Number,
+    accountValues: Object,
+    topHouseholds: Array,
+    topAccounts: Array,
+  },
+  methods: {
+    formatCurrency(value) {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(value);
+    },
+  },
+};
+</script>
+
+<style scoped>
+  .summary-box {
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  h3 {
+    margin-top: 0;
+  }
+</style>
+

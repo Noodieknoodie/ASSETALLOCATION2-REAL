@@ -3,4 +3,6 @@ import { parseCSVData } from "./csvParser";
 
 const tableData = parseCSVData(rawData);
 
+console.log(tableData);  // Add this line
+
 export default tableData;
