@@ -1,4 +1,3 @@
-
 import { parse } from "papaparse";
 
 let qualifiedKeywords = ['401(k)', '403(b)', 'IRA', 'IRA Intelligent', 'IRA Rollover', 'IRA Rollover 2', 'Roth Conversion', 'Roth Conversion IRA', 'Roth IRA', 'Roth IRA Intelligent', 'SEP IRA', 'Simple IRA', 'Inherited IRA', 'Inherited Roth IRA'];
@@ -8,21 +7,20 @@ let nonQualifiedKeywords = ['Annuity', 'By-Pass Trust', 'Credit Shelter Trust', 
 function getAccountType(accountName) {
   const lowerCaseAccountName = accountName.toLowerCase();
 
-  if (qualifiedKeywords.some(keyword => lowerCaseAccountName.includes(keyword.toLowerCase()))) {
+  if (qualifiedKeywords.includes(lowerCaseAccountName)) {
     return 'Qualified';
   }
 
-  if (taxFreeKeywords.some(keyword => lowerCaseAccountName.includes(keyword.toLowerCase()))) {
+  if (taxFreeKeywords.includes(lowerCaseAccountName)) {
     return 'Tax-Free';
   }
 
-  if (nonQualifiedKeywords.some(keyword => lowerCaseAccountName.includes(keyword.toLowerCase()))) {
+  if (nonQualifiedKeywords.includes(lowerCaseAccountName)) {
     return 'Non-Qualified';
   }
 
   return 'Unknown'; 
 }
-
 
 export function parseCSVData(csvData) {
   const parsedData = parse(csvData.trim(), {
@@ -41,6 +39,8 @@ export function parseCSVData(csvData) {
     ['Tax-Free', 0]
   ]);
 
+  const accountTypes = new Map();
+
   const summaryData = parsedData.data.reduce((acc, row) => {
     const id = row["Primary Household ID"];
     const accountId = row["Account Number"];
@@ -48,7 +48,13 @@ export function parseCSVData(csvData) {
     const firstName = row["First Name"];
     const lastName = row["Last Name"];
     const accountName = row["Account Name"];
-    const accountType = getAccountType(accountName);
+    let accountType;
+    if (accountTypes.has(accountId)) {
+      accountType = accountTypes.get(accountId);
+    } else {
+      accountType = getAccountType(accountName);
+      accountTypes.set(accountId, accountType);
+    }
     const accountValue = parseFloat(row["Account Current Value"]);
 
     if (!householdName) {
@@ -83,13 +89,12 @@ export function parseCSVData(csvData) {
     return acc;
   }, {});
 
-    // Calculate account type counts and sums after processing all households
-    Object.values(summaryData).forEach(household => {
-      Array.from(household.accounts.values()).forEach(account => {
-        accountTypeCounts.set(account.type, accountTypeCounts.get(account.type) + 1);
-        accountTypeSums.set(account.type, accountTypeSums.get(account.type) + account.value);
-      });
+  Object.values(summaryData).forEach(household => {
+    Array.from(household.accounts.values()).forEach(account => {
+      accountTypeCounts.set(account.type, accountTypeCounts.get(account.type) + 1);
+      accountTypeSums.set(account.type, accountTypeSums.get(account.type) + account.value);
     });
+  });
 
   const formattedData = Object.values(summaryData).map((household) => {
     const topAccounts = Array.from(household.accounts.values())
