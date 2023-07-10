@@ -9,37 +9,68 @@
         class="search-input"
       />
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Household</th>
-          <th>Advisor</th>
-          <th>Number of Accounts</th>
-          <th>Total Account Value</th>
-          <th>Current Allocation</th>
-          <th>Target Allocation</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-for="(row, rowIndex) in filteredData"
-          :key="rowIndex"
-          :class="{ 'highlighted-row': rowIndex === highlightedRowIndex }"
-          @mouseover="highlightedRowIndex = rowIndex"
-          @mouseout="highlightedRowIndex = -1"
-          @click="onRowClick(rowIndex)"
-        >
-          <td>{{ row.id }}</td>
-          <td>{{ row.household }}</td>
-          <td>{{ row.advisor }}</td>
-          <td>{{ row.numberOfAccounts }}</td>
-          <td>{{ formatCurrency(row.totalAccountValue) }}</td>
-          <td>{{ row.currentAllocation }}</td>
-          <td>{{ row.targetAllocation }}</td>
-        </tr>
-      </tbody>
-    </table>
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Household</th>
+      <th>Advisor</th>
+      <th>Number of Accounts</th>
+      <th>Total Account Value</th>
+      <th>Current Allocation</th>
+      <th>Target Allocation</th>
+      <th>Account Details</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr
+      v-for="(row, rowIndex) in filteredData"
+      :key="rowIndex"
+      :class="{ 'highlighted-row': rowIndex === highlightedRowIndex }"
+      @mouseover="highlightedRowIndex = rowIndex"
+      @mouseout="highlightedRowIndex = -1"
+      @click="onRowClick(rowIndex)"
+    >
+      <td>{{ row.id }}</td>
+      <td>{{ row.household }}</td>
+      <td>{{ row.advisor }}</td>
+      <td>{{ row.numberOfAccounts }}</td>
+      <td>{{ formatCurrency(row.totalAccountValue) }}</td>
+      <td>{{ row.currentAllocation }}</td>
+      <td>{{ row.targetAllocation }}</td>
+      <td>
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Qualified</td>
+              <td>
+                {{ row.qualifiedCount }} | {{ formatCurrency(row.qualifiedValue) }}
+              </td>
+            </tr>
+            <tr>
+              <td>Non-Qualified</td>
+              <td>
+                {{ row.nonQualifiedCount }} | {{ formatCurrency(row.nonQualifiedValue) }}
+              </td>
+            </tr>
+            <tr>
+              <td>Tax-Free</td>
+              <td>
+                {{ row.taxFreeCount }} | {{ formatCurrency(row.taxFreeValue) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+    </tr>
+  </tbody>
+</table>
   </div>
 </template>
 

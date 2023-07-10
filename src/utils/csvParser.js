@@ -1,127 +1,45 @@
 import { parse } from "papaparse";
 
-let qualifiedKeywords = [
-  "401(k)",
-  "403(b)",
-  "IRA",
-  "IRA Intelligent",
-  "IRA Rollover",
-  "IRA Rollover 2",
-  "Roth Conversion",
-  "Roth Conversion IRA",
-  "Roth IRA",
-  "Roth IRA Intelligent",
-  "SEP IRA",
-  "Simple IRA",
-  "Inherited IRA",
-  "Inherited Roth IRA",
-];
-let taxFreeKeywords = [
-  "529",
-  "Charitable",
-  "Education Savings",
-  "Utah 529",
-  "UTMA",
-];
-let nonQualifiedKeywords = [
-  "Annuity",
-  "By-Pass Trust",
-  "Credit Shelter Trust",
-  "Family Trust",
-  "Grantor Trust",
-  "GRAT",
-  "GST",
-  "GST (Margin)",
-  "Irrevocable Trust",
-  "Living Trust",
-  "Living Trust (Bonds)",
-  "Living Trust (Dividend)",
-  "Living Trust (Equity)",
-  "Living Trust (Margin)",
-  "Living Trust (Yield)",
-  "Marital Trust",
-  "Pen Trust",
-  "Rev Trust 1",
-  "Rev Trust 2",
-  "Revocable Trust",
-  "Revocable Trust (Equity)",
-  "Revocable Trust (Yield)",
-  "Special Needs Trust",
-  "Supplemental Needs Trust",
-  "Survivors Trust",
-  "Testamentary Trust",
-  "Trust",
-  "Individual",
-  "Comm Prop WROS",
-  "Community Property",
-  "Community Property (Margin)",
-  "Community Property 2",
-  "Dsg Bene JT (Margin)",
-  "JT TEN",
-  "JT TEN - LINK",
-  "JT TEN - Travel",
-  "JT TEN (Fool Acct)",
-  "JT TEN (Income)",
-  "JT TEN (Investment)",
-  "JT TEN (Margin)",
-  "JT TEN (Tax)",
-  "JT TEN (Tech)",
-  "JT TEN (Trading)",
-  "JT TEN | Pledged",
-  "JT Ten 2",
-  "JT Ten Comp",
-  "JTWROS",
-  "JTWROS 4",
-  "JTWROS COMP",
-  "Ten Com",
-  "Ten Com (Margin)",
-  "Corporate",
-  "LLC",
-  "Partnership",
-  "Partnership (Margin)",
-  "Profit Sharing Plan",
-  "CRUT",
-  "Schwab Charitable",
-  "Annuity",
-  "Estate",
-  "OUTSIDE BILLING",
-  "Separate Property",
-];
-
-function getAccountType(accountName) {
-  if (qualifiedKeywords.includes(accountName)) {
-    return "Qualified";
-  }
-
-  if (taxFreeKeywords.includes(accountName)) {
-    return "Tax-Free";
-  }
-
-  if (nonQualifiedKeywords.includes(accountName)) {
-    return "Non-Qualified";
-  }
-
-  return "Unknown";
-}
-
 export function parseCSVData(csvData) {
   const parsedData = parse(csvData.trim(), {
     header: true,
     skipEmptyLines: "greedy",
   });
 
-  const accountTypeCounts = new Map([
-    ["Qualified", 0],
-    ["Non-Qualified", 0],
-    ["Tax-Free", 0],
-  ]);
-  const accountTypeSums = new Map([
-    ["Qualified", 0],
-    ["Non-Qualified", 0],
-    ["Tax-Free", 0],
-  ]);
+  function getAccountCategory(accountType) {
+    const qualifiedKeywords = [
+      "401(k)",
+      "403(b)",
+      "IRA",
+      "IRA Intelligent",
+      "IRA Rollover",
+      "IRA Rollover 2",
+      "Roth Conversion",
+      "Roth Conversion IRA",
+      "Roth IRA",
+      "Roth IRA Intelligent",
+      "SEP IRA",
+      "Simple IRA",
+      "Inherited IRA",
+      "Inherited Roth IRA",
+    ];
 
-  const accountTypes = new Map();
+    const taxFreeKeywords = [
+      "529",
+      "Charitable",
+      "Education Savings",
+      "Utah 529",
+      "UTMA",
+    ];
+
+    if (qualifiedKeywords.includes(accountType)) {
+      return "Qualified";
+    } else if (taxFreeKeywords.includes(accountType)) {
+      return "Tax-Free";
+    } else {
+      return "Non-Qualified";
+    }
+  }
 
   const summaryData = parsedData.data.reduce((acc, row) => {
     const id = row["Primary Household ID"];
@@ -130,13 +48,7 @@ export function parseCSVData(csvData) {
     const firstName = row["First Name"];
     const lastName = row["Last Name"];
     const accountName = row["Account Name"];
-    let accountType;
-    if (accountTypes.has(accountId)) {
-      accountType = accountTypes.get(accountId);
-    } else {
-      accountType = getAccountType(accountName);
-      accountTypes.set(accountId, accountType);
-    }
+    const accountType = row["Account Type"];
     const accountValue = parseFloat(row["Account Current Value"]);
 
     if (!householdName) {
@@ -153,6 +65,11 @@ export function parseCSVData(csvData) {
       primaryAdvisor: row["Primary Advisor"],
       accounts: new Map(),
       totalAccountValue: 0,
+      accountCategoryCounts: {
+        "Qualified": { count: 0, value: 0 },
+        "Non-Qualified": { count: 0, value: 0 },
+        "Tax-Free": { count: 0, value: 0 },
+      },
     };
 
     if (!household.accounts.has(accountId)) {
@@ -160,35 +77,19 @@ export function parseCSVData(csvData) {
         id: accountId,
         name: accountName,
         value: accountValue,
-        type: accountType,
       });
-      accountTypeCounts.set(
-        accountType,
-        accountTypeCounts.get(accountType) + 1
-      );
-      accountTypeSums.set(
-        accountType,
-        accountTypeSums.get(accountType) + accountValue
-      );
+
+      // Determine the account category and update the count and value
+      const accountCategory = getAccountCategory(accountType);
+      household.accountCategoryCounts[accountCategory].count += 1;
+      household.accountCategoryCounts[accountCategory].value += accountValue;
+
       household.totalAccountValue += accountValue;
     }
 
     acc[id] = household;
     return acc;
   }, {});
-
-  Object.values(summaryData).forEach((household) => {
-    Array.from(household.accounts.values()).forEach((account) => {
-      accountTypeCounts.set(
-        account.type,
-        accountTypeCounts.get(account.type) + 1
-      );
-      accountTypeSums.set(
-        account.type,
-        accountTypeSums.get(account.type) + account.value
-      );
-    });
-  });
 
   const formattedData = Object.values(summaryData).map((household) => {
     const topAccounts = Array.from(household.accounts.values())
@@ -201,19 +102,15 @@ export function parseCSVData(csvData) {
       advisor: household.primaryAdvisor,
       numberOfAccounts: household.accounts.size,
       totalAccountValue: household.totalAccountValue.toFixed(2),
-      accountTypes: {
-        Qualified: accountTypeCounts.get("Qualified"),
-        "Non-Qualified": accountTypeCounts.get("Non-Qualified"),
-        "Tax-Free": accountTypeCounts.get("Tax-Free"),
-      },
-      accountTypeSums: {
-        Qualified: accountTypeSums.get("Qualified").toFixed(2),
-        "Non-Qualified": accountTypeSums.get("Non-Qualified").toFixed(2),
-        "Tax-Free": accountTypeSums.get("Tax-Free").toFixed(2),
-      },
       currentAllocation: "TBD",
       targetAllocation: "TBD",
       topAccounts,
+      qualifiedCount: household.accountCategoryCounts["Qualified"].count,
+      qualifiedValue: household.accountCategoryCounts["Qualified"].value.toFixed(2),
+      nonQualifiedCount: household.accountCategoryCounts["Non-Qualified"].count,
+      nonQualifiedValue: household.accountCategoryCounts["Non-Qualified"].value.toFixed(2),
+      taxFreeCount: household.accountCategoryCounts["Tax-Free"].count,
+      taxFreeValue: household.accountCategoryCounts["Tax-Free"].value.toFixed(2),
     };
   });
 

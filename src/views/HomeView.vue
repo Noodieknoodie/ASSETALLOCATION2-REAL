@@ -4,13 +4,16 @@
       <SummaryBox
         :totalHouseholds="totalHouseholds"
         :totalAccounts="totalAccounts"
-        :accountTypes="accountTypes"
         :totalValue="totalValue"
-        :accountValues="accountValues"
         :topHouseholds="topHouseholds"
         :topAccounts="topAccounts"
+        :totalQualifiedCount="accountCategorySummary.qualifiedCount"
+        :totalQualifiedValue="accountCategorySummary.qualifiedValue"
+        :totalNonQualifiedCount="accountCategorySummary.nonQualifiedCount"
+        :totalNonQualifiedValue="accountCategorySummary.nonQualifiedValue"
+        :totalTaxFreeCount="accountCategorySummary.taxFreeCount"
+        :totalTaxFreeValue="accountCategorySummary.taxFreeValue"
       />
-      <!-- Pass the key prop to force the component to re-render when filters change -->
       <ClientTable
         :filters="filters"
         :key="filterKey"
@@ -34,7 +37,6 @@ export default {
 
   props: {
     filters: {
-      //change initialFilters to filters
       type: Object,
       default: () => ({}),
     },
@@ -42,14 +44,11 @@ export default {
 
   setup(props) {
     const filteredData = ref([]);
-    // Add a ref to hold the filter key
     const filterKey = ref(0);
 
-    // Watch the filters prop for changes
     watch(
       () => props.initialFilters,
       () => {
-        // Update filterKey to force ClientTable to re-render
         filterKey.value++;
       },
       { deep: true }
@@ -60,6 +59,7 @@ export default {
     };
 
     const totalHouseholds = computed(() => filteredData.value.length);
+
     const totalAccounts = computed(() =>
       filteredData.value.reduce(
         (sum, household) => sum + household.numberOfAccounts,
@@ -67,44 +67,10 @@ export default {
       )
     );
 
-    const accountTypes = computed(() =>
-      filteredData.value.reduce(
-        (types, household) => {
-          types.Qualified += household.accountTypes.Qualified;
-          types.NonQualified += household.accountTypes.NonQualified;
-          types.TaxFree += household.accountTypes.TaxFree;
-          return types;
-        },
-        { Qualified: 0, NonQualified: 0, TaxFree: 0 }
-      )
-    );
-
     const totalValue = computed(() =>
       filteredData.value.reduce(
         (sum, household) => sum + parseFloat(household.totalAccountValue),
         0
-      )
-    );
-
-    const accountValues = computed(() =>
-      filteredData.value.reduce(
-        (values, household) => {
-          values.Qualified += isNaN(
-            parseFloat(household.accountTypeSums.Qualified)
-          )
-            ? 0
-            : parseFloat(household.accountTypeSums.Qualified);
-          values.NonQualified += isNaN(
-            parseFloat(household.accountTypeSums.NonQualified)
-          )
-            ? 0
-            : parseFloat(household.accountTypeSums.NonQualified);
-          values.TaxFree += isNaN(parseFloat(household.accountTypeSums.TaxFree))
-            ? 0
-            : parseFloat(household.accountTypeSums.TaxFree);
-          return values;
-        },
-        { Qualified: 0, NonQualified: 0, TaxFree: 0 }
       )
     );
 
@@ -130,16 +96,42 @@ export default {
       return sortedAccounts.slice(0, 5);
     });
 
+    const accountCategorySummary = computed(() => {
+      let qualifiedCount = 0;
+      let qualifiedValue = 0;
+      let nonQualifiedCount = 0;
+      let nonQualifiedValue = 0;
+      let taxFreeCount = 0;
+      let taxFreeValue = 0;
+
+      filteredData.value.forEach((household) => {
+        qualifiedCount += household.qualifiedCount;
+        qualifiedValue += parseFloat(household.qualifiedValue);
+        nonQualifiedCount += household.nonQualifiedCount;
+        nonQualifiedValue += parseFloat(household.nonQualifiedValue);
+        taxFreeCount += household.taxFreeCount;
+        taxFreeValue += parseFloat(household.taxFreeValue);
+      });
+
+      return {
+        qualifiedCount,
+        qualifiedValue: qualifiedValue.toFixed(2),
+        nonQualifiedCount,
+        nonQualifiedValue: nonQualifiedValue.toFixed(2),
+        taxFreeCount,
+        taxFreeValue: taxFreeValue.toFixed(2),
+      };
+    });
+
     return {
-      filterKey, // Return the filterKey ref from setup
+      filterKey,
       handleFilteredData,
       totalHouseholds,
       totalAccounts,
-      accountTypes,
       totalValue,
-      accountValues,
       topHouseholds,
       topAccounts,
+      accountCategorySummary,
     };
   },
 };
