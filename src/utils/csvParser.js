@@ -1,32 +1,28 @@
+```
 import { parse } from "papaparse";
 
-let qualifiedKeywords = ['401', '403', 'ira', 'sep', 'simple', 'defined benefit', 'rollover', 'profit sharing', 'roth', 'cust', 'inherited'];
-let taxFreeKeywords = ['529', 'charitable', 'education'];
-let nonQualifiedKeywords = ['annuity', 'trust', 'comm', 'corporate', 'cp', 'crut', 'estate', 'grat', 'gst', 'individual', 'joint', 'jt', 'living', 'llc', 'marital', 'partnership', 'pen', 'rev', 'separate property', 'special needs', 'supplemental needs', 'survivors', 'ten', 'utma', 'outside billing'];
+let qualifiedKeywords = ['401(k)', '403(b)', 'IRA', 'IRA Intelligent', 'IRA Rollover', 'IRA Rollover 2', 'Roth Conversion', 'Roth Conversion IRA', 'Roth IRA', 'Roth IRA Intelligent', 'SEP IRA', 'Simple IRA', 'Inherited IRA', 'Inherited Roth IRA'];
+let taxFreeKeywords = ['529', 'Charitable', 'Education Savings', 'Utah 529', 'UTMA'];
+let nonQualifiedKeywords = ['Annuity', 'By-Pass Trust', 'Credit Shelter Trust', 'Family Trust', 'Grantor Trust', 'GRAT', 'GST', 'GST (Margin)', 'Irrevocable Trust', 'Living Trust', 'Living Trust (Bonds)', 'Living Trust (Dividend)', 'Living Trust (Equity)', 'Living Trust (Margin)', 'Living Trust (Yield)', 'Marital Trust', 'Pen Trust', 'Rev Trust 1', 'Rev Trust 2', 'Revocable Trust', 'Revocable Trust (Equity)', 'Revocable Trust (Yield)', 'Special Needs Trust', 'Supplemental Needs Trust', 'Survivors Trust', 'Testamentary Trust', 'Trust', 'Individual', 'Comm Prop WROS', 'Community Property', 'Community Property (Margin)', 'Community Property 2', 'Dsg Bene JT (Margin)', 'JT TEN', 'JT TEN - LINK', 'JT TEN - Travel', 'JT TEN (Fool Acct)', 'JT TEN (Income)', 'JT TEN (Investment)', 'JT TEN (Margin)', 'JT TEN (Tax)', 'JT TEN (Tech)', 'JT TEN (Trading)', 'JT TEN | Pledged', 'JT Ten 2', 'JT Ten Comp', 'JTWROS', 'JTWROS 4', 'JTWROS COMP', 'Ten Com', 'Ten Com (Margin)', 'Corporate', 'LLC', 'Partnership', 'Partnership (Margin)', 'Profit Sharing Plan', 'CRUT', 'Schwab Charitable', 'Annuity', 'Estate', 'OUTSIDE BILLING', 'Separate Property'];
 
 function getAccountType(accountName) {
-  const lowerCaseName = accountName.toLowerCase();
-  
-  for (let keyword of qualifiedKeywords) {
-    if (lowerCaseName.includes(keyword)) {
-      return 'Qualified';
-    }
+  const lowerCaseAccountName = accountName.toLowerCase();
+
+  if (qualifiedKeywords.some(keyword => lowerCaseAccountName.includes(keyword.toLowerCase()))) {
+    return 'Qualified';
   }
-  
-  for (let keyword of taxFreeKeywords) {
-    if (lowerCaseName.includes(keyword)) {
-      return 'Tax-Free';
-    }
+
+  if (taxFreeKeywords.some(keyword => lowerCaseAccountName.includes(keyword.toLowerCase()))) {
+    return 'Tax-Free';
   }
-  
-  for (let keyword of nonQualifiedKeywords) {
-    if (lowerCaseName.includes(keyword)) {
-      return 'Non-Qualified';
-    }
+
+  if (nonQualifiedKeywords.some(keyword => lowerCaseAccountName.includes(keyword.toLowerCase()))) {
+    return 'Non-Qualified';
   }
-  
-  return 'Unknown'; // or you can return 'Non-Qualified' if you prefer to default to this type
+
+  return 'Unknown'; 
 }
+
 
 export function parseCSVData(csvData) {
   const parsedData = parse(csvData.trim(), {
@@ -42,13 +38,13 @@ export function parseCSVData(csvData) {
     const lastName = row["Last Name"];
     const accountName = row["Account Name"];
     const accountType = getAccountType(accountName);
+    const accountValue = parseFloat(row["Account Current Value"]);
 
-    // If household name is blank, create a new one based on other fields
     if (!householdName) {
       if (accountName === `${lastName}, ${firstName}`) {
         householdName = accountName;
       } else {
-        householdName = `${lastName}, ${firstName}`; // or any other logic you prefer
+        householdName = `${lastName}, ${firstName}`;
       }
     }
 
@@ -56,31 +52,43 @@ export function parseCSVData(csvData) {
       id,
       householdName,
       primaryAdvisor: row["Primary Advisor"],
-      accounts: new Set(),
+      accounts: new Map(),  // changed from Set to Map
       totalAccountValue: 0,
-      accountTypes: {Qualified: 0, NonQualified: 0, TaxFree: 0}
+      accountTypes: { 'Qualified': 0, 'Non-Qualified': 0, 'Tax-Free': 0 },
     };
 
     if (!household.accounts.has(accountId)) {
-      household.accounts.add(accountId);
-      household.totalAccountValue += parseFloat(row["Account Current Value"]);
+      household.accounts.set(accountId, {
+        id: accountId,
+        name: accountName,
+        value: accountValue,
+      });
       household.accountTypes[accountType] += 1;
+      household.totalAccountValue += accountValue;
     }
 
     acc[id] = household;
     return acc;
   }, {});
 
-  const formattedData = Object.values(summaryData).map((household) => ({
-    id: household.id,
-    household: household.householdName,
-    advisor: household.primaryAdvisor,
-    numberOfAccounts: household.accounts.size,
-    totalAccountValue: household.totalAccountValue.toFixed(2),
-    accountTypes: household.accountTypes,
-    currentAllocation: "TBD",
-    targetAllocation: "TBD",
-  }));
+  const formattedData = Object.values(summaryData).map((household) => {
+    const topAccounts = Array.from(household.accounts.values())
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+
+    return {
+      id: household.id,
+      household: household.householdName,
+      advisor: household.primaryAdvisor,
+      numberOfAccounts: household.accounts.size,
+      totalAccountValue: household.totalAccountValue.toFixed(2),
+      accountTypes: household.accountTypes,
+      currentAllocation: "TBD",
+      targetAllocation: "TBD",
+      topAccounts,
+    };
+  });
 
   return formattedData;
 }
+```

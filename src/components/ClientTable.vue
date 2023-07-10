@@ -22,7 +22,14 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(row, rowIndex) in filteredData" :key="rowIndex">
+        <tr
+          v-for="(row, rowIndex) in filteredData"
+          :key="rowIndex"
+          :class="{ 'highlighted-row': rowIndex === highlightedRowIndex }"
+          @mouseover="highlightedRowIndex = rowIndex"
+          @mouseout="highlightedRowIndex = -1"
+          @click="onRowClick(rowIndex)"
+        >
           <td>{{ row.id }}</td>
           <td>{{ row.household }}</td>
           <td>{{ row.advisor }}</td>
@@ -37,7 +44,7 @@
 </template>
 
 <script>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import tableData from "@/utils/csvData";
 
 export default {
@@ -45,8 +52,9 @@ export default {
     filters: Object,
   },
 
-  setup(props) {
+  setup(props, { emit }) {
     const searchText = ref("");
+    const highlightedRowIndex = ref(-1);
 
     const filteredData = computed(() => {
       if (!props.filters) return tableData;
@@ -81,9 +89,22 @@ export default {
       });
     });
 
+    // Add a watcher to emit the filtered-data event
+    watch(filteredData, (newData) => {
+      // Emit the filtered-data event with the new data
+      emit("filtered-data", newData);
+    });
+
+    const onRowClick = (index) => {
+      console.log(`Row ${index} clicked`);
+      // Add your logic here
+    };
+
     return {
       searchText,
       filteredData,
+      highlightedRowIndex,
+      onRowClick, // Return the function
     };
   },
 
@@ -128,5 +149,9 @@ td {
 
 th {
   background-color: #f2f2f2;
+}
+
+.highlighted-row {
+  background-color: #e0e0e0;
 }
 </style>

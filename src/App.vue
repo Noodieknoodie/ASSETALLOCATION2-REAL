@@ -1,18 +1,20 @@
 <template>
   <div id="app">
     <FilterSidebar @apply-filters="updateFilters" />
-    <ClientTable :filters="filters" />
+    <HomeView :filters="filters"/>
   </div>
 </template>
 
+
+
 <script>
-import ClientTable from "@/components/ClientTable.vue";
+import HomeView from "@/views/HomeView.vue";
 import FilterSidebar from "@/components/FilterSidebar.vue";
 
 export default {
   components: {
-    ClientTable,
     FilterSidebar,
+    HomeView,
   },
 
   data() {
