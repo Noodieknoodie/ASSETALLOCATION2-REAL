@@ -19,7 +19,9 @@
       <th>Total Account Value</th>
       <th>Current Allocation</th>
       <th>Target Allocation</th>
+      <!--
       <th>Account Details</th>
+    -->
     </tr>
   </thead>
   <tbody>
@@ -38,6 +40,7 @@
       <td>{{ formatCurrency(row.totalAccountValue) }}</td>
       <td>{{ row.currentAllocation }}</td>
       <td>{{ row.targetAllocation }}</td>
+      <!--
       <td>
         <table>
           <thead>
@@ -68,6 +71,7 @@
           </tbody>
         </table>
       </td>
+      -->
     </tr>
   </tbody>
 </table>

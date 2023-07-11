@@ -3,7 +3,7 @@
     <h3>Filter by Advisor</h3>
     <div>
       <input type="checkbox" id="selectAll" v-model="selectAll" @change="toggleSelectAll" />
-      <label for="selectAll">Select All</label>
+      <label for="selectAll">Check/Uncheck All</label>
     </div>
     <div v-for="(advisor, index) in advisors" :key="index">
       <input
@@ -13,15 +13,6 @@
         :value="advisor"
       />
       <label :for="advisor">{{ advisor }}</label>
-    </div>
-    <h3>Filter by Total Account Value</h3>
-    <div class="range-slider">
-      <input type="range" min="0" max="30000000" step="100000" v-model="pendingFilters.valueRange[0]" />
-      <input type="range" min="0" max="30000000" step="100000" v-model="pendingFilters.valueRange[1]" />
-    </div>
-    <div>
-      <input type="number" v-model="pendingFilters.valueRange[0]" min="0" max="300000000" />
-      <input type="number" v-model="pendingFilters.valueRange[1]" min="0" max="300000000" />
     </div>
     <button @click="applyFilters">Apply Filters</button>
   </div>
@@ -45,11 +36,9 @@ export default {
     const selectAll = ref(true);
     const filters = reactive({
       advisors: [],
-      valueRange: [0, 300000000],
     });
     const pendingFilters = reactive({
       advisors: [],
-      valueRange: [0, 300000000],
     });
 
     // Extract unique advisors from the data
@@ -79,7 +68,6 @@ export default {
 
     const applyFilters = () => {
       filters.advisors = [...pendingFilters.advisors];
-      filters.valueRange = [...pendingFilters.valueRange];
 
       emit('apply-filters', filters);
     };

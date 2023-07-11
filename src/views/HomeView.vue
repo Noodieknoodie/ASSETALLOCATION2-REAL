@@ -19,6 +19,7 @@
         :key="filterKey"
         @filtered-data="handleFilteredData"
       />
+      <ValueRangeSlider @value-range-change="handleValueRangeChange" />
     </div>
   </div>
 </template>
@@ -27,12 +28,14 @@
 import { ref, computed, watch } from "vue";
 import ClientTable from "@/components/ClientTable.vue";
 import SummaryBox from "@/components/SummaryBox.vue";
+import ValueRangeSlider from "@/components/ValueRangeSlider.vue";
 
 export default {
   name: "HomeView",
   components: {
     ClientTable,
     SummaryBox,
+    ValueRangeSlider,
   },
 
   props: {
@@ -45,7 +48,12 @@ export default {
   setup(props) {
     const filteredData = ref([]);
     const filterKey = ref(0);
+    const valueRange = ref([0, 3]); // add this line
 
+    const handleValueRangeChange = (val) => {
+      // add this function
+      valueRange.value = val;
+    };
     watch(
       () => props.initialFilters,
       () => {
@@ -54,8 +62,21 @@ export default {
       { deep: true }
     );
 
+    const valueToRange = (value) => {
+      if (value < 1000000) return 0;
+      if (value < 2000000) return 1;
+      if (value < 3000000) return 2;
+      return 3;
+    };
+
     const handleFilteredData = (data) => {
-      filteredData.value = data;
+      filteredData.value = data.filter((row) => {
+        // Map the totalAccountValue to range index
+        const valueIndex = valueToRange(parseFloat(row.totalAccountValue));
+        return (
+          valueIndex >= valueRange.value[0] && valueIndex <= valueRange.value[1]
+        );
+      });
     };
 
     const totalHouseholds = computed(() => filteredData.value.length);
@@ -132,6 +153,7 @@ export default {
       topHouseholds,
       topAccounts,
       accountCategorySummary,
+      handleValueRangeChange, // Add this line
     };
   },
 };
