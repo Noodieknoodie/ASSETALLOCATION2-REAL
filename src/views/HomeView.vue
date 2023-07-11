@@ -39,11 +39,11 @@ export default {
   },
 
   props: {
-    filters: {
-      type: Object,
-      default: () => ({}),
-    },
+  initialFilters: {
+    type: Object,
+    default: () => ({}),
   },
+},
 
   setup(props) {
     const filteredData = ref([]);
