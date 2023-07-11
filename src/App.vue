@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <FilterSidebar @apply-filters="updateFilters" />
-    <HomeView :initialFilters="filters"/>
+    <HomeView :filters="filters"/>
   </div>
 </template>
 
