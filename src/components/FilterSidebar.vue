@@ -2,7 +2,12 @@
   <div class="filter-sidebar">
     <h3>Filter by Advisor</h3>
     <div>
-      <input type="checkbox" id="selectAll" v-model="selectAll" @change="toggleSelectAll" />
+      <input
+        type="checkbox"
+        id="selectAll"
+        v-model="selectAll"
+        @change="toggleSelectAll"
+      />
       <label for="selectAll">Check/Uncheck All</label>
     </div>
     <div v-for="(advisor, index) in advisors" :key="index">
@@ -14,31 +19,32 @@
       />
       <label :for="advisor">{{ advisor }}</label>
     </div>
+    <ValueRangeSlider v-model="pendingFilters.accountValue" />
     <button @click="applyFilters">Apply Filters</button>
   </div>
 </template>
 
-<style>
-.range-slider {
-  display: flex;
-}
-</style>
-
 <script>
 import { ref, reactive, onMounted } from "vue";
 import tableData from "@/utils/csvData";
+import ValueRangeSlider from "@/components/ValueRangeSlider.vue";
 
 export default {
-  emits: ['apply-filters'],
+  components: {
+    ValueRangeSlider,
+  },
+  emits: ["apply-filters"],
 
   setup(_, { emit }) {
     const advisors = ref([]);
     const selectAll = ref(true);
     const filters = reactive({
       advisors: [],
+      accountValue: 0,
     });
     const pendingFilters = reactive({
       advisors: [],
+      accountValue: 0,
     });
 
     // Extract unique advisors from the data
@@ -68,8 +74,9 @@ export default {
 
     const applyFilters = () => {
       filters.advisors = [...pendingFilters.advisors];
+      filters.accountValue = pendingFilters.accountValue;
 
-      emit('apply-filters', filters);
+      emit("apply-filters", filters);
     };
 
     return {
@@ -129,5 +136,9 @@ export default {
 .value-filter-input {
   width: 50px;
   margin: 0 10px;
+}
+
+.range-slider {
+  display: flex;
 }
 </style>

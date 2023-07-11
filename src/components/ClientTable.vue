@@ -112,6 +112,14 @@ export default {
           return false;
         }
 
+        // Include only rows where total account value is greater than the selected range's lower bound
+        if (
+          parseFloat(row.totalAccountValue) <
+          parseFloat(props.filters.accountValue)
+        ) {
+          return false;
+        }
+
         return true;
       });
     });
