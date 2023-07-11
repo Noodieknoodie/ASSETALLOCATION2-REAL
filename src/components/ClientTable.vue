@@ -9,38 +9,38 @@
         class="search-input"
       />
     </div>
-<table>
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Household</th>
-      <th>Advisor</th>
-      <th>Number of Accounts</th>
-      <th>Total Account Value</th>
-      <th>Current Allocation</th>
-      <th>Target Allocation</th>
-      <!--
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Household</th>
+          <th>Advisor</th>
+          <th>Number of Accounts</th>
+          <th>Total Account Value</th>
+          <th>Current Allocation</th>
+          <th>Target Allocation</th>
+          <!--
       <th>Account Details</th>
     -->
-    </tr>
-  </thead>
-  <tbody>
-    <tr
-      v-for="(row, rowIndex) in filteredData"
-      :key="rowIndex"
-      :class="{ 'highlighted-row': rowIndex === highlightedRowIndex }"
-      @mouseover="highlightedRowIndex = rowIndex"
-      @mouseout="highlightedRowIndex = -1"
-      @click="onRowClick(rowIndex)"
-    >
-      <td>{{ row.id }}</td>
-      <td>{{ row.household }}</td>
-      <td>{{ row.advisor }}</td>
-      <td>{{ row.numberOfAccounts }}</td>
-      <td>{{ formatCurrency(row.totalAccountValue) }}</td>
-      <td>{{ row.currentAllocation }}</td>
-      <td>{{ row.targetAllocation }}</td>
-      <!--
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          v-for="(row, rowIndex) in filteredData"
+          :key="rowIndex"
+          :class="{ 'highlighted-row': rowIndex === highlightedRowIndex }"
+          @mouseover="highlightedRowIndex = rowIndex"
+          @mouseout="highlightedRowIndex = -1"
+          @click="onRowClick(rowIndex)"
+        >
+          <td>{{ row.id }}</td>
+          <td>{{ row.household }}</td>
+          <td>{{ row.advisor }}</td>
+          <td>{{ row.numberOfAccounts }}</td>
+          <td>{{ formatCurrency(row.totalAccountValue) }}</td>
+          <td>{{ row.currentAllocation }}</td>
+          <td>{{ row.targetAllocation }}</td>
+          <!--
       <td>
         <table>
           <thead>
@@ -72,9 +72,9 @@
         </table>
       </td>
       -->
-    </tr>
-  </tbody>
-</table>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>
 
@@ -100,14 +100,6 @@ export default {
           props.filters.advisors.length > 0 &&
           !props.filters.advisors.includes(row.advisor) &&
           (!props.filters.unspecified || row.advisor)
-        ) {
-          return false;
-        }
-
-        // Include only rows where Total Account Value is within selected range
-        if (
-          parseFloat(row.totalAccountValue) < props.filters.valueRange[0] ||
-          parseFloat(row.totalAccountValue) > props.filters.valueRange[1]
         ) {
           return false;
         }

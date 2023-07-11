@@ -1,11 +1,9 @@
 <template>
   <div id="app">
     <FilterSidebar @apply-filters="updateFilters" />
-    <HomeView :filters="filters"/>
+    <HomeView :filters="filters" />
   </div>
 </template>
-
-
 
 <script>
 import HomeView from "@/views/HomeView.vue";
@@ -22,7 +20,6 @@ export default {
       filters: {
         advisors: [],
         unspecified: true,
-        valueRange: [0, 300000000],
       },
     };
   },
