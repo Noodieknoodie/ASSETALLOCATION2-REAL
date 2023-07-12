@@ -83,4 +83,5 @@ export default {
 .summary-box li {
   list-style-type: none;
 }
+
 </style>

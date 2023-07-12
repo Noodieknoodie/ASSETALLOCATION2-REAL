@@ -58,7 +58,7 @@ export function parseCSVData(csvData) {
         householdName = `${lastName}, ${firstName}`;
       }
     }
-
+    
     const household = acc[id] || {
       id,
       householdName,
@@ -71,31 +71,39 @@ export function parseCSVData(csvData) {
         "Tax-Free": { count: 0, value: 0 },
       },
     };
-
+    
     if (!household.accounts.has(accountId)) {
+      // Get recategorized account type
+      const accountCategory = getAccountCategory(accountType);
+      
+      // Get open date from CSV row
+      const openDate = row["Open Date"];
+    
+      // Create new account with additional properties
       household.accounts.set(accountId, {
         id: accountId,
         name: accountName,
         value: accountValue,
+        accountType: accountCategory,  // account type is the recategorized version
+        openDate: openDate,
       });
-
+    
       // Determine the account category and update the count and value
-      const accountCategory = getAccountCategory(accountType);
       household.accountCategoryCounts[accountCategory].count += 1;
       household.accountCategoryCounts[accountCategory].value += accountValue;
-
+    
       household.totalAccountValue += accountValue;
     }
-
+    
     acc[id] = household;
     return acc;
-  }, {});
-
-  const formattedData = Object.values(summaryData).map((household) => {
+    }, {});
+    
+    const formattedData = Object.values(summaryData).map((household) => {
     const topAccounts = Array.from(household.accounts.values())
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
-
+    
     return {
       id: household.id,
       household: household.householdName,
@@ -112,7 +120,7 @@ export function parseCSVData(csvData) {
       taxFreeCount: household.accountCategoryCounts["Tax-Free"].count,
       taxFreeValue: household.accountCategoryCounts["Tax-Free"].value.toFixed(2),
     };
-  });
-
-  return formattedData;
+    });
+    
+    return formattedData;
 }

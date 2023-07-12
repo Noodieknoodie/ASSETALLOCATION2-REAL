@@ -19,9 +19,6 @@
           <th>Total Account Value</th>
           <th>Current Allocation</th>
           <th>Target Allocation</th>
-          <!--
-      <th>Account Details</th>
-    -->
         </tr>
       </thead>
       <tbody>
@@ -37,41 +34,9 @@
           <td>{{ row.household }}</td>
           <td>{{ row.advisor }}</td>
           <td>{{ row.numberOfAccounts }}</td>
-          <td>{{ formatCurrency(row.totalAccountValue) }}</td>
+          <td>{{ formatCurrency(row.totalAccountValue) }}</td>  <!-- Corrected here -->
           <td>{{ row.currentAllocation }}</td>
           <td>{{ row.targetAllocation }}</td>
-          <!--
-      <td>
-        <table>
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Qualified</td>
-              <td>
-                {{ row.qualifiedCount }} | {{ formatCurrency(row.qualifiedValue) }}
-              </td>
-            </tr>
-            <tr>
-              <td>Non-Qualified</td>
-              <td>
-                {{ row.nonQualifiedCount }} | {{ formatCurrency(row.nonQualifiedValue) }}
-              </td>
-            </tr>
-            <tr>
-              <td>Tax-Free</td>
-              <td>
-                {{ row.taxFreeCount }} | {{ formatCurrency(row.taxFreeValue) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </td>
-      -->
         </tr>
       </tbody>
     </table>
@@ -95,7 +60,6 @@ export default {
       if (!props.filters) return tableData;
 
       return tableData.filter((row) => {
-        // Include only rows where advisor is selected in the filters or unspecified if selected
         if (
           props.filters.advisors.length > 0 &&
           !props.filters.advisors.includes(row.advisor) &&
@@ -104,7 +68,6 @@ export default {
           return false;
         }
 
-        // Include only rows that contain the search text
         if (
           searchText.value !== "" &&
           !row.household.toLowerCase().includes(searchText.value.toLowerCase())
@@ -112,7 +75,6 @@ export default {
           return false;
         }
 
-        // Include only rows where total account value is greater than the selected range's lower bound
         if (
           parseFloat(row.totalAccountValue) <
           parseFloat(props.filters.accountValue)
@@ -124,22 +86,19 @@ export default {
       });
     });
 
-    // Add a watcher to emit the filtered-data event
     watch(filteredData, (newData) => {
-      // Emit the filtered-data event with the new data
       emit("filtered-data", newData);
     });
 
     const onRowClick = (index) => {
-      console.log(`Row ${index} clicked`);
-      // Add your logic here
+      emit("row-click", index);
     };
 
     return {
       searchText,
       filteredData,
       highlightedRowIndex,
-      onRowClick, // Return the function
+      onRowClick,
     };
   },
 
@@ -158,8 +117,10 @@ export default {
 
 <style scoped>
 .table-container {
-  width: 100%;
+  width: 60%;
+  height: 500px; /* Adjust this value to your needs */
   overflow-x: auto;
+  overflow-y: auto; /* This will make your table scrollable */
 }
 
 .search-container {

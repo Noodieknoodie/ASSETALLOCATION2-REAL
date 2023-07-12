@@ -14,11 +14,15 @@
         :totalTaxFreeCount="accountCategorySummary.taxFreeCount"
         :totalTaxFreeValue="accountCategorySummary.taxFreeValue"
       />
-      <ClientTable
-        :filters="filters"
-        :key="filterKey"
-        @filtered-data="handleFilteredData"
-      />
+      <div class="home-content">
+        <ClientTable
+          :filters="filters"
+          :key="filterKey"
+          @filtered-data="handleFilteredData"
+          @row-click="handleRowClick"
+        />
+        <DetailsPane :household="selectedHousehold" />
+      </div>
     </div>
   </div>
 </template>
@@ -27,12 +31,14 @@
 import { ref, computed, watch } from "vue";
 import ClientTable from "@/components/ClientTable.vue";
 import SummaryBox from "@/components/SummaryBox.vue";
+import DetailsPane from "@/components/DetailsPane.vue";
 
 export default {
   name: "HomeView",
   components: {
     ClientTable,
     SummaryBox,
+    DetailsPane,
   },
 
   props: {
@@ -45,9 +51,10 @@ export default {
   setup(props) {
     const filteredData = ref([]);
     const filterKey = ref(0);
+    const selectedHousehold = ref(null);
 
     watch(
-      () => props.initialFilters,
+      () => props.filters,
       () => {
         filterKey.value++;
       },
@@ -56,6 +63,10 @@ export default {
 
     const handleFilteredData = (data) => {
       filteredData.value = data;
+    };
+
+    const handleRowClick = (index) => {
+      selectedHousehold.value = filteredData.value[index];
     };
 
     const totalHouseholds = computed(() => filteredData.value.length);
@@ -132,6 +143,8 @@ export default {
       topHouseholds,
       topAccounts,
       accountCategorySummary,
+      selectedHousehold,
+      handleRowClick,
     };
   },
 };
